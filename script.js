@@ -81,11 +81,11 @@ function selectProp(url) {
 
 function initAR() {
     scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera(75, 640/480, 0.1, 1000);
+    camera = new THREE.PerspectiveCamera(75, 640 / 480, 0.1, 1000);
     renderer = new THREE.WebGLRenderer({ alpha: true });
     renderer.setSize(640, 480);
     document.getElementById('three-container').appendChild(renderer.domElement);
-    
+
     // Contoh model 3D
     const geometry = new THREE.BoxGeometry(1, 1, 1);
     const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
@@ -104,7 +104,7 @@ function initAR() {
 
 async function detectFaceMesh() {
     if (!faceLandmarksDetector) return;
-    
+
     const faces = await faceLandmarksDetector.estimateFaces(video);
     if (faces.length > 0) {
         const keypoints = faces[0].keypoints;
@@ -125,13 +125,13 @@ function takePhoto() {
         canvas.width = 640;
         canvas.height = 480;
         const ctx = canvas.getContext('2d');
-        
+
         // Gambar background
         ctx.drawImage(selectedBg, 0, 0, 640, 480);
-        
+
         // Gambar video
         ctx.drawImage(video, 0, 0);
-        
+
         // Gambar props
         currentProps.forEach(prop => {
             ctx.drawImage(prop, parseInt(prop.style.left), parseInt(prop.style.top));
@@ -152,7 +152,7 @@ function downloadPhoto() {
 function uploadToCloud() {
     const storageRef = storage.ref();
     const fileRef = storageRef.child(`photos/${Date.now()}.png`);
-    
+
     fetch(photo.src)
         .then(res => res.blob())
         .then(blob => {
@@ -170,12 +170,12 @@ function toggleAR() {
     document.querySelectorAll('.prop').forEach(prop => prop.style.display = isARMode ? 'none' : 'block');
 }
 
-// Event Listener untuk Background
 function uploadBackground(event) {
     const file = event.target.files[0];
     const reader = new FileReader();
     reader.onload = (e) => {
         selectedBg.src = e.target.result;
+        selectedBg.style.display = 'block';
     };
     reader.readAsDataURL(file);
 }
@@ -191,7 +191,7 @@ async function searchBackground() {
     try {
         const response = await fetch(url, {
             headers: {
-                Authorization: HBQ7GM9g3eK9LncV6ukYCnA3WSBzNRSzzkLPTeP0l3R0JH9Cq4FhCmxR
+                Authorization: "HBQ7GM9g3eK9LncV6ukYCnA3WSBzNRSzzkLPTeP0l3R0JH9Cq4FhCmxR"
             }
         });
 
