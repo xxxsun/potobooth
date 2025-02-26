@@ -2,41 +2,8 @@
 <html>
 <head>
     <title>Photobooth AR Pro</title>
-    <style>
-        #camera {
-            width: 640px;
-            height: 480px;
-            position: relative;
-            margin: 20px auto;
-            border: 2px dashed #ccc;
-        }
-        #video-container {
-            position: relative;
-            width: 640px;
-            height: 480px;
-        }
-        .prop, .background {
-            position: absolute;
-            max-width: 100%;
-            max-height: 100%;
-        }
-        #three-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 640px;
-            height: 480px;
-        }
-        .cropper-container {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.8);
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css"/>
 </head>
 <body>
     <h1>Photobooth AR Pro</h1>
@@ -51,7 +18,7 @@
     </div>
 
     <!-- Kontrol -->
-    <div>
+    <div class="controls">
         <button onclick="startCamera()">Nyalakan Kamera</button>
         <button onclick="takePhoto()">Ambil Foto (3 Detik)</button>
         <button onclick="toggleAR()">Mode AR 3D</button>
@@ -60,26 +27,26 @@
     </div>
 
     <!-- Upload Custom Props/Background -->
-    <div>
+    <div class="uploads">
         <h3>Upload Custom Props:</h3>
         <input type="file" accept="image/*" onchange="uploadProp(event)">
-        <div id="custom-props"></div>
+        <div id="custom-props" class="props-container"></div>
 
         <h3>Upload Custom Background:</h3>
         <input type="file" accept="image/*" onchange="uploadBackground(event)">
-        <div id="custom-backgrounds"></div>
+        <div id="custom-backgrounds" class="backgrounds-container"></div>
     </div>
 
     <!-- Cropper Modal -->
     <div class="cropper-container" id="cropper-modal">
-        <div>
+        <div class="cropper-wrapper">
             <img id="cropper-image">
-            <button onclick="cropImage()">Simpan Crop</button>
+            <button class="crop-btn" onclick="cropImage()">Simpan Crop</button>
         </div>
     </div>
 
     <!-- Hasil Foto -->
-    <img id="photo" style="display:none; max-width: 100%;">
+    <img id="photo" class="result-photo">
 
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js"></script>
@@ -91,189 +58,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css"/>
-
-    <script>
-        let video = document.getElementById('video');
-        let selectedBg = document.getElementById('selected-bg');
-        let photo = document.getElementById('photo');
-        let cropper;
-        let faceLandmarksDetector;
-        let currentProps = [];
-        let isARMode = false;
-        let firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_AUTH_DOMAIN",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId: "YOUR_APP_ID"
-        };
-
-        // Inisialisasi Firebase
-        firebase.initializeApp(firebaseConfig);
-        const storage = firebase.storage();
-
-        // 1. Load Model Face Mesh
-        async function loadFaceMesh() {
-            faceLandmarksDetector = await faceLandmarksDetection.load(
-                faceLandmarksDetection.SupportedPackages.mediapipeFacemesh,
-                { maxFaces: 1 }
-            );
-        }
-
-        // 2. Nyalakan Kamera
-        async function startCamera() {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            video.srcObject = stream;
-            await loadFaceMesh();
-            initAR(); // Inisialisasi Three.js untuk AR
-        }
-
-        // 3. Upload Props dengan Crop/Resize
-        function uploadProp(event) {
-            const file = event.target.files[0];
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const img = document.createElement('img');
-                img.src = e.target.result;
-                img.onload = () => {
-                    document.getElementById('cropper-modal').style.display = 'block';
-                    cropper = new Cropper(document.getElementById('cropper-image'), {
-                        aspectRatio: img.width / img.height,
-                        viewMode: 1,
-                        preview: '.preview'
-                    });
-                };
-                document.getElementById('cropper-image').src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
-
-        // 4. Simpan Crop
-        function cropImage() {
-            const canvas = cropper.getCroppedCanvas();
-            const croppedUrl = canvas.toDataURL('image/png');
-            const img = document.createElement('img');
-            img.src = croppedUrl;
-            img.style.cursor = 'pointer';
-            img.style.width = '50px';
-            img.onclick = () => selectProp(croppedUrl);
-            document.getElementById('custom-props').appendChild(img);
-            document.getElementById('cropper-modal').style.display = 'none';
-        }
-
-        // 5. Pilih Props (AR/3D)
-        function selectProp(url) {
-            // Untuk AR 3D, ganti dengan model Three.js
-            if (isARMode) {
-                load3DModel(url);
-            } else {
-                // 2D props dengan face mesh
-                const img = new Image();
-                img.src = url;
-                currentProps.push(img);
-            }
-        }
-
-        // 6. Inisialisasi Three.js untuk AR
-        function initAR() {
-            const scene = new THREE.Scene();
-            const camera = new THREE.PerspectiveCamera(75, 640/480, 0.1, 1000);
-            const renderer = new THREE.WebGLRenderer({ alpha: true });
-            renderer.setSize(640, 480);
-            document.getElementById('three-container').appendChild(renderer.domElement);
-
-            // Contoh model 3D (ganti dengan GLTF)
-            const geometry = new THREE.BoxGeometry();
-            const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-            const cube = new THREE.Mesh(geometry, material);
-            scene.add(cube);
-            camera.position.z = 5;
-
-            function animate() {
-                requestAnimationFrame(animate);
-                cube.rotation.x += 0.01;
-                cube.rotation.y += 0.01;
-                renderer.render(scene, camera);
-            }
-            animate();
-        }
-
-        // 7. Deteksi Face Mesh dan Tempatkan Props
-        async function detectFaceMesh() {
-            if (!faceLandmarksDetector) return;
-            const faces = await faceLandmarksDetector.estimateFaces(video);
-            if (faces.length > 0) {
-                const keypoints = faces[0].keypoints;
-                // Contoh: Tempatkan kacamata di mata
-                const leftEye = keypoints[133];
-                const rightEye = keypoints[362];
-                const dx = rightEye.x - leftEye.x;
-                const dy = rightEye.y - leftEye.y;
-                const angle = Math.atan2(dy, dx) * 180 / Math.PI;
-
-                currentProps.forEach(prop => {
-                    prop.style.left = `${leftEye.x - prop.width/2}px`;
-                    prop.style.top = `${leftEye.y - prop.height/2}px`;
-                    prop.style.transform = `rotate(${angle}deg)`;
-                });
-            }
-            requestAnimationFrame(detectFaceMesh);
-        }
-
-        // 8. Ambil Foto
-        async function takePhoto() {
-            setTimeout(() => {
-                const canvas = document.createElement('canvas');
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                const ctx = canvas.getContext('2d');
-
-                // Gambar background
-                ctx.drawImage(selectedBg, 0, 0, canvas.width, canvas.height);
-                
-                // Gambar video
-                ctx.drawImage(video, 0, 0);
-
-                // Gambar props 2D dan 3D
-                if (isARMode) {
-                    // Render Three.js scene
-                    renderer.render(scene, camera);
-                    ctx.drawImage(renderer.domElement, 0, 0);
-                } else {
-                    currentProps.forEach(prop => ctx.drawImage(prop, prop.x, prop.y));
-                }
-
-                // Tampilkan hasil
-                photo.src = canvas.toDataURL('image/png');
-                photo.style.display = 'block';
-            }, 3000);
-        }
-
-        // 9. Upload ke Firebase Cloud Storage
-        function uploadToCloud() {
-            const storageRef = storage.ref();
-            const fileRef = storageRef.child(`photos/${Date.now()}.png`);
-            fetch(photo.src)
-                .then(res => res.blob())
-                .then(blob => {
-                    fileRef.put(blob).then(snapshot => {
-                        snapshot.ref.getDownloadURL().then(url => {
-                            alert(`Foto tersimpan di: ${url}`);
-                        });
-                    });
-                });
-        }
-
-        // 10. Toggle Mode AR
-        function toggleAR() {
-            isARMode = !isARMode;
-            document.getElementById('three-container').style.display = isARMode ? 'block' : 'none';
-        }
-
-        // Jalankan deteksi face mesh
-        detectFaceMesh();
-    </script>
+    
+    <script src="script.js"></script>
 </body>
 </html>
