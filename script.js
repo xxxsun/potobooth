@@ -180,9 +180,6 @@ function uploadBackground(event) {
     reader.readAsDataURL(file);
 }
 
-// Konfigurasi API Pexels
-const PEXELS_API_KEY = "HBQ7GM9g3eK9LncV6ukYCnA3WSBzNRSzzkLPTeP0l3R0JH9Cq4FhCmxR"; // Ganti dengan API key Anda
-
 async function searchBackground() {
     const query = document.getElementById('search-input').value;
     if (!query) {
@@ -194,9 +191,14 @@ async function searchBackground() {
     try {
         const response = await fetch(url, {
             headers: {
-                Authorization: PEXELS_API_KEY
+                Authorization: HBQ7GM9g3eK9LncV6ukYCnA3WSBzNRSzzkLPTeP0l3R0JH9Cq4FhCmxR
             }
         });
+
+        if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+
         const data = await response.json();
 
         // Tampilkan hasil pencarian
@@ -216,10 +218,9 @@ async function searchBackground() {
         }
     } catch (error) {
         console.error("Error fetching background:", error);
-        alert("Gagal memuat hasil pencarian.");
+        alert("Gagal memuat hasil pencarian. Silakan coba lagi.");
     }
 }
-
 
 function selectBackground(url) {
     selectedBg.src = url;
