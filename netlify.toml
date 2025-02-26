@@ -11,6 +11,9 @@
   for = "/*"
   [headers.values]
     Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization"
     X-Frame-Options = "DENY"
     X-XSS-Protection = "1; mode=block"
     Content-Security-Policy = "default-src 'self' https: 'unsafe-inline' 'unsafe-eval'; img-src * data:; frame-src 'self' https://*.firebaseapp.com;"
