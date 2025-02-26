@@ -10,12 +10,12 @@ let renderer, scene, camera;
 
 // Konfigurasi Firebase (Ganti dengan milik Anda)
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyD7US9GSq4tBMYofZuHdT6DnBSgcWcjL24",
+    authDomain: "ptbt-d1c30.firebaseapp.com",
+    projectId: "ptbt-d1c30",
+    storageBucket: "ptbt-d1c30.firebasestorage.app",
+    messagingSenderId: "935684465833",
+    appId: "1:935684465833:web:1b8e3bea4ac8a18252b5b8"
 };
 
 // Inisialisasi Firebase
