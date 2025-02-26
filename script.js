@@ -219,3 +219,9 @@ async function searchBackground() {
         alert("Gagal memuat hasil pencarian.");
     }
 }
+
+
+function selectBackground(url) {
+    selectedBg.src = url;
+    selectedBg.style.display = 'block';
+}
