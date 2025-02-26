@@ -1,72 +1,73 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Photobooth AR Pro</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css"/>
 </head>
 <body>
-    <h1>Photobooth AR Pro</h1>
+    <div class="container">
+        <h1>Photobooth AR Pro</h1>
 
-    <!-- Kamera -->
-    <div id="camera">
-        <div id="video-container">
-            <video id="video" autoplay></video>
-            <img id="selected-bg" class="background">
-            <div id="three-container"></div>
+        <!-- Kamera -->
+        <div id="camera">
+            <div id="video-container">
+                <video id="video" autoplay></video>
+                <img id="selected-bg" class="background">
+                <div id="three-container"></div>
+            </div>
         </div>
-    </div>
 
-    <!-- Kontrol -->
-    <div class="controls">
-        <button onclick="startCamera()">Nyalakan Kamera</button>
-        <button onclick="takePhoto()">Ambil Foto (3 Detik)</button>
-        <button onclick="toggleAR()">Mode AR 3D</button>
-        <button onclick="downloadPhoto()">Download Foto</button>
-        <button onclick="uploadToCloud()">Upload ke Cloud</button>
-    </div>
-
-    <!-- Upload Custom Props/Background -->
-    <div class="uploads">
-        <h3>Upload Custom Props:</h3>
-        <input type="file" accept="image/*" onchange="uploadProp(event)">
-        <div id="custom-props" class="props-container"></div>
-
-        <h3>Upload Custom Background:</h3>
-        <input type="file" accept="image/*" onchange="uploadBackground(event)">
-        <div id="custom-backgrounds" class="backgrounds-container"></div>
-    </div>
-
-    <!-- Cropper Modal -->
-    <div class="cropper-container" id="cropper-modal">
-        <div class="cropper-wrapper">
-            <img id="cropper-image">
-            <button class="crop-btn" onclick="cropImage()">Simpan Crop</button>
+        <!-- Kontrol -->
+        <div class="controls">
+            <button onclick="startCamera()">Nyalakan Kamera</button>
+            <button onclick="takePhoto()">Ambil Foto (3 Detik)</button>
+            <button onclick="toggleAR()">Mode AR 3D</button>
+            <button onclick="downloadPhoto()">Download Foto</button>
+            <button onclick="uploadToCloud()">Upload ke Cloud</button>
         </div>
+
+        <!-- Upload Custom Props/Background -->
+        <div class="uploads">
+            <h3>Upload Custom Props:</h3>
+            <input type="file" accept="image/*" onchange="uploadProp(event)">
+            <div class="props-container" id="custom-props"></div>
+
+            <h3>Upload Custom Background:</h3>
+            <input type="file" accept="image/*" onchange="uploadBackground(event)">
+            <div class="backgrounds-container" id="custom-backgrounds"></div>
+        </div>
+
+        <!-- Cari Background Online -->
+        <div class="search-container">
+            <h3>Cari Background Online:</h3>
+            <input type="text" id="search-input" placeholder="Cari background...">
+            <button onclick="searchBackground()">Cari</button>
+            <div id="search-results" class="backgrounds-container"></div>
+        </div>
+
+        <!-- Cropper Modal -->
+        <div class="cropper-container" id="cropper-modal">
+            <div class="cropper-wrapper">
+                <img id="cropper-image">
+                <button class="crop-btn" onclick="cropImage()">Simpan Crop</button>
+            </div>
+        </div>
+
+        <!-- Hasil Foto -->
+        <img id="photo" class="result-photo">
     </div>
-
-    <!-- Hasil Foto -->
-    <img id="photo" class="result-photo">
-
-    <div class="search-container">
-    <h3>Cari Background Online:</h3>
-    <input type="text" id="search-input" placeholder="Cari background...">
-    <button onclick="searchBackground()">Cari</button>
-</div>
-
-<div id="search-results" class="backgrounds-container"></div>
 
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-storage.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js"></script>
 
     <!-- Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
-    
     <script src="script.js"></script>
 </body>
 </html>
