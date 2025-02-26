@@ -13,7 +13,7 @@ const firebaseConfig = {
     apiKey: "AIzaSyD7US9GSq4tBMYofZuHdT6DnBSgcWcjL24",
     authDomain: "ptbt-d1c30.firebaseapp.com",
     projectId: "ptbt-d1c30",
-    storageBucket: "ptbt-d1c30.firebasestorage.app",
+    storageBucket: "ptbt-d1c30.appspot.com",
     messagingSenderId: "935684465833",
     appId: "1:935684465833:web:1b8e3bea4ac8a18252b5b8"
 };
@@ -39,24 +39,32 @@ async function startCamera() {
         detectFaceMesh();
     } catch (err) {
         console.error("Error accessing camera:", err);
+        alert("Tidak dapat mengakses kamera. Mohon berikan izin akses kamera.");
     }
 }
 
 function uploadProp(event) {
     const file = event.target.files[0];
+    if (!file) return;
+    
     const reader = new FileReader();
     reader.onload = (e) => {
         document.getElementById('cropper-modal').style.display = 'block';
+        if (cropper) {
+            cropper.destroy();
+        }
+        document.getElementById('cropper-image').src = e.target.result;
         cropper = new Cropper(document.getElementById('cropper-image'), {
             aspectRatio: NaN,
             viewMode: 1
         });
-        document.getElementById('cropper-image').src = e.target.result;
     };
     reader.readAsDataURL(file);
 }
 
 function cropImage() {
+    if (!cropper) return;
+    
     const canvas = cropper.getCroppedCanvas();
     const croppedUrl = canvas.toDataURL('image/png');
     const img = document.createElement('img');
@@ -74,104 +82,222 @@ function selectProp(url) {
         const img = new Image();
         img.src = url;
         img.classList.add('prop');
+        img.style.position = 'absolute';
+        img.style.left = '50px';
+        img.style.top = '50px';
+        img.style.width = '100px';
+        img.style.zIndex = '10';
         currentProps.push(img);
         document.getElementById('video-container').appendChild(img);
     }
 }
 
+function load3DModel(url) {
+    // Implementasi untuk memuat model 3D
+    const texture = new THREE.TextureLoader().load(url);
+    const geometry = new THREE.PlaneGeometry(2, 2);
+    const material = new THREE.MeshBasicMaterial({ 
+        map: texture, 
+        transparent: true,
+        side: THREE.DoubleSide
+    });
+    const plane = new THREE.Mesh(geometry, material);
+    scene.add(plane);
+    plane.position.z = -2;
+}
+
 function initAR() {
+    if (renderer) return; // Hindari inisialisasi berulang
+    
     scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera(75, 640 / 480, 0.1, 1000);
+    camera = new THREE.PerspectiveCamera(75, 640/480, 0.1, 1000);
     renderer = new THREE.WebGLRenderer({ alpha: true });
     renderer.setSize(640, 480);
-    document.getElementById('three-container').appendChild(renderer.domElement);
-
-    // Contoh model 3D
-    const geometry = new THREE.BoxGeometry(1, 1, 1);
-    const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-    const cube = new THREE.Mesh(geometry, material);
-    scene.add(cube);
+    const container = document.getElementById('three-container');
+    container.innerHTML = '';
+    container.appendChild(renderer.domElement);
+    
     camera.position.z = 5;
 
     function animate() {
         requestAnimationFrame(animate);
-        cube.rotation.x += 0.01;
-        cube.rotation.y += 0.01;
         renderer.render(scene, camera);
     }
     animate();
 }
 
 async function detectFaceMesh() {
-    if (!faceLandmarksDetector) return;
-
-    const faces = await faceLandmarksDetector.estimateFaces(video);
-    if (faces.length > 0) {
-        const keypoints = faces[0].keypoints;
-        currentProps.forEach((prop, index) => {
-            if (index === 0) { // Contoh: Prop pertama di kepala
-                const nose = keypoints[2];
-                prop.style.left = `${nose.x - 50}px`;
-                prop.style.top = `${nose.y - 100}px`;
-            }
-        });
+    if (!faceLandmarksDetector || !video.readyState) {
+        requestAnimationFrame(detectFaceMesh);
+        return;
     }
+    
+    try {
+        const faces = await faceLandmarksDetector.estimateFaces({
+            input: video
+        });
+        
+        if (faces.length > 0) {
+            const keypoints = faces[0].keypoints;
+            const nose = keypoints.find(kp => kp.name === 'noseTip') || keypoints[1];
+            const leftEye = keypoints.find(kp => kp.name === 'leftEye') || keypoints[33];
+            const rightEye = keypoints.find(kp => kp.name === 'rightEye') || keypoints[263];
+            
+            currentProps.forEach((prop) => {
+                // Posisikan di atas kepala
+                if (nose && leftEye && rightEye) {
+                    const x = nose.x;
+                    const y = nose.y - 100; // Posisi di atas kepala
+                    
+                    prop.style.left = `${x - prop.width/2}px`;
+                    prop.style.top = `${y - prop.height/2}px`;
+                }
+            });
+        }
+    } catch (error) {
+        console.error("Error detecting face:", error);
+    }
+    
     requestAnimationFrame(detectFaceMesh);
 }
 
 function takePhoto() {
-    setTimeout(() => {
-        const canvas = document.createElement('canvas');
-        canvas.width = 640;
-        canvas.height = 480;
-        const ctx = canvas.getContext('2d');
+    const countdown = document.createElement('div');
+    countdown.classList.add('countdown');
+    countdown.style.position = 'absolute';
+    countdown.style.top = '50%';
+    countdown.style.left = '50%';
+    countdown.style.transform = 'translate(-50%, -50%)';
+    countdown.style.fontSize = '100px';
+    countdown.style.color = 'white';
+    countdown.style.textShadow = '0 0 10px black';
+    countdown.style.zIndex = '999';
+    document.getElementById('video-container').appendChild(countdown);
+    
+    let count = 3;
+    countdown.textContent = count;
+    
+    const interval = setInterval(() => {
+        count--;
+        if (count > 0) {
+            countdown.textContent = count;
+        } else {
+            clearInterval(interval);
+            countdown.remove();
+            capturePhoto();
+        }
+    }, 1000);
+}
 
-        // Gambar background
+function capturePhoto() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 640;
+    canvas.height = 480;
+    const ctx = canvas.getContext('2d');
+    
+    // Gambar background jika ada
+    if (selectedBg.src) {
         ctx.drawImage(selectedBg, 0, 0, 640, 480);
+    } else {
+        // Background putih jika tidak ada
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, 640, 480);
+    }
+    
+    // Gambar video
+    ctx.drawImage(video, 0, 0, 640, 480);
+    
+    // Gambar props
+    currentProps.forEach(prop => {
+        if (prop.style.display !== 'none') {
+            const x = parseInt(prop.style.left) || 0;
+            const y = parseInt(prop.style.top) || 0;
+            const width = parseInt(prop.style.width) || prop.width || 100;
+            const height = parseInt(prop.style.height) || prop.height || 100;
+            
+            ctx.drawImage(prop, x, y, width, height);
+        }
+    });
 
-        // Gambar video
-        ctx.drawImage(video, 0, 0);
+    // Jika mode AR, ambil screenshot dari renderer
+    if (isARMode && renderer) {
+        const threeCanvas = renderer.domElement;
+        ctx.drawImage(threeCanvas, 0, 0, 640, 480);
+    }
 
-        // Gambar props
-        currentProps.forEach(prop => {
-            ctx.drawImage(prop, parseInt(prop.style.left), parseInt(prop.style.top));
-        });
-
-        photo.src = canvas.toDataURL('image/png');
-        photo.style.display = 'block';
-    }, 3000);
+    photo.src = canvas.toDataURL('image/png');
+    photo.style.display = 'block';
 }
 
 function downloadPhoto() {
+    if (!photo.src || photo.src === '') {
+        alert('Ambil foto terlebih dahulu!');
+        return;
+    }
+    
     const link = document.createElement('a');
-    link.download = 'photobooth-ar.png';
+    link.download = `photobooth-ar-${Date.now()}.png`;
     link.href = photo.src;
     link.click();
 }
 
 function uploadToCloud() {
+    if (!photo.src || photo.src === '') {
+        alert('Ambil foto terlebih dahulu!');
+        return;
+    }
+    
     const storageRef = storage.ref();
     const fileRef = storageRef.child(`photos/${Date.now()}.png`);
-
+    
+    // Tampilkan indikator loading
+    const loadingMsg = document.createElement('div');
+    loadingMsg.textContent = 'Uploading...';
+    loadingMsg.style.position = 'fixed';
+    loadingMsg.style.top = '50%';
+    loadingMsg.style.left = '50%';
+    loadingMsg.style.transform = 'translate(-50%, -50%)';
+    loadingMsg.style.padding = '20px';
+    loadingMsg.style.background = 'rgba(0,0,0,0.7)';
+    loadingMsg.style.color = 'white';
+    loadingMsg.style.borderRadius = '10px';
+    loadingMsg.style.zIndex = '9999';
+    document.body.appendChild(loadingMsg);
+    
     fetch(photo.src)
         .then(res => res.blob())
         .then(blob => {
             fileRef.put(blob).then(snapshot => {
                 snapshot.ref.getDownloadURL().then(url => {
+                    document.body.removeChild(loadingMsg);
                     alert(`Foto tersimpan di: ${url}`);
                 });
+            }).catch(error => {
+                document.body.removeChild(loadingMsg);
+                console.error("Upload error:", error);
+                alert("Gagal mengupload foto. Periksa koneksi internet Anda.");
             });
+        })
+        .catch(error => {
+            document.body.removeChild(loadingMsg);
+            console.error("Blob error:", error);
+            alert("Gagal memproses foto");
         });
 }
 
 function toggleAR() {
     isARMode = !isARMode;
     document.getElementById('three-container').style.display = isARMode ? 'block' : 'none';
-    document.querySelectorAll('.prop').forEach(prop => prop.style.display = isARMode ? 'none' : 'block');
+    currentProps.forEach(prop => {
+        prop.style.display = isARMode ? 'none' : 'block';
+    });
 }
 
+// Event Listener untuk Background
 function uploadBackground(event) {
     const file = event.target.files[0];
+    if (!file) return;
+    
     const reader = new FileReader();
     reader.onload = (e) => {
         selectedBg.src = e.target.result;
@@ -187,7 +313,13 @@ async function searchBackground() {
         return;
     }
 
+    // Tampilkan indikator loading
+    const resultsContainer = document.getElementById('search-results');
+    resultsContainer.innerHTML = "<p>Mencari...</p>";
+
+    // URL API Pexels
     const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=10`;
+    
     try {
         const response = await fetch(url, {
             headers: {
@@ -200,17 +332,14 @@ async function searchBackground() {
         }
 
         const data = await response.json();
-
-        // Tampilkan hasil pencarian
-        const resultsContainer = document.getElementById('search-results');
         resultsContainer.innerHTML = ""; // Bersihkan hasil sebelumnya
 
         if (data.photos && data.photos.length > 0) {
             data.photos.forEach(photo => {
                 const img = document.createElement('img');
-                img.src = photo.src.medium; // Ukuran medium
+                img.src = photo.src.medium;
                 img.alt = photo.alt;
-                img.onclick = () => selectBackground(photo.src.large); // Gunakan ukuran besar saat dipilih
+                img.onclick = () => selectBackground(photo.src.large);
                 resultsContainer.appendChild(img);
             });
         } else {
@@ -218,6 +347,7 @@ async function searchBackground() {
         }
     } catch (error) {
         console.error("Error fetching background:", error);
+        resultsContainer.innerHTML = "<p>Terjadi kesalahan saat mencari. Coba lagi.</p>";
         alert("Gagal memuat hasil pencarian. Silakan coba lagi.");
     }
 }
@@ -226,3 +356,20 @@ function selectBackground(url) {
     selectedBg.src = url;
     selectedBg.style.display = 'block';
 }
+
+// Initialize elements after DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    video = document.getElementById('video');
+    selectedBg = document.getElementById('selected-bg');
+    photo = document.getElementById('photo');
+    
+    // Set initial styles
+    selectedBg.style.display = 'none';
+    selectedBg.style.position = 'absolute';
+    selectedBg.style.width = '100%';
+    selectedBg.style.height = '100%';
+    selectedBg.style.objectFit = 'cover';
+    selectedBg.style.zIndex = '1';
+    
+    document.getElementById('three-container').style.display = 'none';
+});
