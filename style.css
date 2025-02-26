@@ -118,3 +118,26 @@ button:hover {
     height: 100%;
     pointer-events: none;
 }
+
+
+.search-container {
+    margin: 20px 0;
+    text-align: center;
+}
+
+#search-input {
+    padding: 10px;
+    width: 60%;
+    margin-right: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+#search-results img {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+}
