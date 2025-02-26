@@ -179,3 +179,43 @@ function uploadBackground(event) {
     };
     reader.readAsDataURL(file);
 }
+
+// Konfigurasi API Pexels
+const PEXELS_API_KEY = "HBQ7GM9g3eK9LncV6ukYCnA3WSBzNRSzzkLPTeP0l3R0JH9Cq4FhCmxR"; // Ganti dengan API key Anda
+
+async function searchBackground() {
+    const query = document.getElementById('search-input').value;
+    if (!query) {
+        alert("Masukkan kata kunci pencarian!");
+        return;
+    }
+
+    const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=10`;
+    try {
+        const response = await fetch(url, {
+            headers: {
+                Authorization: PEXELS_API_KEY
+            }
+        });
+        const data = await response.json();
+
+        // Tampilkan hasil pencarian
+        const resultsContainer = document.getElementById('search-results');
+        resultsContainer.innerHTML = ""; // Bersihkan hasil sebelumnya
+
+        if (data.photos && data.photos.length > 0) {
+            data.photos.forEach(photo => {
+                const img = document.createElement('img');
+                img.src = photo.src.medium; // Ukuran medium
+                img.alt = photo.alt;
+                img.onclick = () => selectBackground(photo.src.large); // Gunakan ukuran besar saat dipilih
+                resultsContainer.appendChild(img);
+            });
+        } else {
+            resultsContainer.innerHTML = "<p>Tidak ada hasil ditemukan.</p>";
+        }
+    } catch (error) {
+        console.error("Error fetching background:", error);
+        alert("Gagal memuat hasil pencarian.");
+    }
+}
